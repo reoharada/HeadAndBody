@@ -9,18 +9,21 @@ class HeadBodyRegression:
     def __init__(self):
         self.model_lr = None
         self.sscaler = preprocessing.StandardScaler()
+        self.labels = []
         self.x = []
         self.y = []
         self.xss = []
         self.yss = []
         self._modeling()
 
-
     def _distance(self, x, y):
         xd = x ** 2
         yd = y ** 2
         dd = math.sqrt(xd + yd)
         return dd
+
+    def _distance_points(self, data, u, v):
+        return self._distance(data[u]['x'] - data[v]['x'], data[u]['y'] - data[v]['y'])
 
     def _standard(self):
         self.sscaler.fit(self.x)
@@ -35,14 +38,22 @@ class HeadBodyRegression:
             data = json.load(f)
             for d in data:
                 _x.append([
-                    self._distance(d['right_year_point']['x'] - d['left_year_point']['x'],
-                                   d['right_year_point']['y'] - d['left_year_point']['y']),
-                    self._distance(d['right_shoulder_point']['x'] - d['left_shoulder_point']['x'],
-                                   d['right_shoulder_point']['y'] - d['left_shoulder_point']['y'])
+                    self._distance_points(d, 'right_year_point', 'left_year_point'),
+                    self._distance_points(d, 'right_shoulder_point', 'left_shoulder_point'),
+                    self._distance_points(d, 'head_top_point', 'jaw_point'),
+                    self._distance_points(d, 'right_year_point', 'jaw_point'),
+                    self._distance_points(d, 'left_year_point', 'jaw_point'),
                 ])
                 _y.append(d['body_rate_by_head'])
-        self.x = pd.DataFrame(_x, columns=['ear', 'shoulder'])
-        self.y = pd.DataFrame(_y, columns=['body_rate'])
+        self.labels = [
+            'ear_distance',
+            'shoulder_distance',
+            'head_jaw_distance',
+            'r_ear_jaw_distance',
+            'l_ear_jaw_distance',
+        ]
+        self.x = pd.DataFrame(_x, columns=self.labels)
+        self.y = pd.DataFrame(_y, columns=['body_rate_by_head'])
         print(self.x)
         print(self.y)
         self._standard()
@@ -50,16 +61,17 @@ class HeadBodyRegression:
         self.model_lr.fit(self.xss, self.yss)
 
     def predict(self, x):
-        x_df = pd.DataFrame(x, columns=['ear', 'shoulder'])
+        x_df = pd.DataFrame(x, columns=self.labels)
         _sscaler = preprocessing.StandardScaler()
         _sscaler.fit(x_df)
         xss_df = _sscaler.transform(x_df)
         return self.sscaler.inverse_transform(self.model_lr.predict(xss_df))
+        #return self.sscaler.inverse_transform(self.model_lr.predict(self.xss))
 
 def main():
-    reg = HeadBodyRegression()
+    reg = HeadBodyRegression() # slow
     input_x = []
-    input_x.append([35, 60])
+    input_x.append([35, 70, 45, 28, 28])
     print(reg.predict(input_x))
 
 if __name__ == "__main__":
