@@ -41,7 +41,7 @@ class HeadBodyRegression:
     def _modeling(self):
         _x = []
         _y = []
-        with open('1632543141.json', 'r') as f:
+        with open('src/1632543141.json', 'r') as f:
             data = json.load(f)
             for d in data:
                 _x.append([
@@ -80,13 +80,15 @@ class HeadBodyRegression:
 def index():
     return jsonify({'head_and_boody_result': 7.4, 'APP_ENV': config.APP_ENV}), 200
 
-@app.route('/')
+@app.route('/', methods=['POST'])
 def index_post():
-    distanceFromHeadToJaw = request.data['distance_from_head_to_jaw']
-    distanceShoulders = request.data['distance_shoulders']
-    distanceEars = request.data['distance_ears']
-    distanceFromLeftEraToJaw = request.data['distance_from_left_era_to_jaw']
-    distanceFromRightEraToJaw = request.data['distance_from_right_era_to_jaw']
+    data = json.loads(request.data)
+    print(data)
+    distanceFromHeadToJaw = data['distance_from_head_to_jaw']
+    distanceShoulders = data['distance_shoulders']
+    distanceEars = data['distance_ears']
+    distanceFromLeftEraToJaw = data['distance_from_left_era_to_jaw']
+    distanceFromRightEraToJaw = data['distance_from_right_era_to_jaw']
     reg = HeadBodyRegression(7) # モデル作成(遅い)
     input_x = []
     input_x.append([distanceFromHeadToJaw, distanceShoulders, distanceEars, distanceFromLeftEraToJaw, distanceFromRightEraToJaw])
@@ -103,4 +105,4 @@ def hello_post():
 def lambda_handler(event, context):
     return awsgi.response(app, event, context)
 
-if config.APP_ENV == 'development': app.run(port=8000, debug=True)
+if config.APP_ENV == 'development': app.run(host='0.0.0.0', port=80, debug=True)
