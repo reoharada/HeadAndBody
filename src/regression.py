@@ -1,14 +1,16 @@
 import pandas as pd
 from sklearn import preprocessing
 from sklearn.linear_model import LinearRegression
+from sklearn.preprocessing import PolynomialFeatures
 import json
 import math
 
 
 class HeadBodyRegression:
-    def __init__(self):
+    def __init__(self, deg=1):
         self.model_lr = None
         self.sscaler = preprocessing.StandardScaler()
+        self.poly = PolynomialFeatures(deg) # 非線形次数
         self.labels = []
         self.x = []
         self.y = []
@@ -25,9 +27,10 @@ class HeadBodyRegression:
     def _distance_points(self, data, u, v):
         return self._distance(data[u]['x'] - data[v]['x'], data[u]['y'] - data[v]['y'])
 
-    def _standard(self):
-        self.sscaler.fit(self.x)
-        self.xss = self.sscaler.transform(self.x)
+    def _preprocess(self):
+        x_poly = self.poly.fit_transform(self.x)
+        self.sscaler.fit(x_poly)
+        self.xss = self.sscaler.transform(x_poly)
         self.sscaler.fit(self.y)
         self.yss = self.sscaler.transform(self.y)
 
@@ -54,24 +57,25 @@ class HeadBodyRegression:
         ]
         self.x = pd.DataFrame(_x, columns=self.labels)
         self.y = pd.DataFrame(_y, columns=['body_rate_by_head'])
-        print(self.x)
-        print(self.y)
-        self._standard()
+        #print(self.x)
+        #print(self.y)
+        self._preprocess()
         self.model_lr = LinearRegression()
         self.model_lr.fit(self.xss, self.yss)
 
     def predict(self, x):
         x_df = pd.DataFrame(x, columns=self.labels)
+        x_poly = self.poly.fit_transform(x_df)
         _sscaler = preprocessing.StandardScaler()
-        _sscaler.fit(x_df)
-        xss_df = _sscaler.transform(x_df)
+        _sscaler.fit(x_poly)
+        xss_df = _sscaler.transform(x_poly)
         return self.sscaler.inverse_transform(self.model_lr.predict(xss_df))
         #return self.sscaler.inverse_transform(self.model_lr.predict(self.xss))
 
 def main():
-    reg = HeadBodyRegression() # slow
+    reg = HeadBodyRegression(7) # モデル作成(遅い)
     input_x = []
-    input_x.append([35, 70, 45, 28, 28])
+    input_x.append([35, 70, 45, 28, 28]) # テスト
     print(reg.predict(input_x))
 
 if __name__ == "__main__":
